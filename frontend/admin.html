@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理员后台 - TeacherRate</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: { primary: '#2563eb', danger: '#dc2626', success: '#16a34a', warning: '#d97706' }
+                }
+            }
+        }
+    </script>
+    <style>
+        .sidebar-item { transition: all 0.2s; }
+        .sidebar-item:hover, .sidebar-item.active { background: rgba(255,255,255,0.1); }
+        .table-row-hover:hover { background: #f9fafb; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <aside class="w-64 bg-gray-900 text-white flex flex-col">
+            <div class="p-4 border-b border-gray-700">
+                <div class="flex items-center gap-2">
+                    <i class="fas fa-shield-halved text-2xl"></i>
+                    <span class="font-bold text-xl">管理后台</span>
+                </div>
+            </div>
+            <nav class="flex-1 p-4 space-y-2">
+                <a href="#" onclick="showPage('dashboard')" class="sidebar-item active flex items-center gap-3 px-4 py-3 rounded-lg" data-page="dashboard">
+                    <i class="fas fa-chart-line w-5"></i> 数据概览
+                </a>
+                <a href="#" onclick="showPage('teachers')" class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-lg" data-page="teachers">
+                    <i class="fas fa-user-graduate w-5"></i> 教师管理
+                    <span id="pending-badge" class="ml-auto bg-warning text-xs px-2 py-0.5 rounded-full hidden">0</span>
+                </a>
+                <a href="#" onclick="showPage('submissions')" class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-lg" data-page="submissions">
+                    <i class="fas fa-paper-plane w-5"></i> 投稿审核
+                    <span id="submission-badge" class="ml-auto bg-warning text-xs px-2 py-0.5 rounded-full hidden">0</span>
+                </a>
+                <a href="#" onclick="showPage('users')" class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-lg" data-page="users">
+                    <i class="fas fa-users w-5"></i> 用户管理
+                </a>
+                <a href="#" onclick="showPage('ratings')" class="sidebar-item flex items-center gap-3 px-4 py-3 rounded-lg" data-page="ratings">
+                    <i class="fas fa-comments w-5"></i> 评论管理
+                </a>
+            </nav>
+            <div class="p-4 border-t border-gray-700">
+                <a href="/" class="flex items-center gap-2 text-gray-400 hover:text-white">
+                    <i class="fas fa-arrow-left"></i> 返回前台
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 overflow-auto">
+            <!-- Header -->
+            <header class="bg-white shadow-sm h-16 flex items-center justify-between px-6">
+                <h1 class="text-xl font-bold text-gray-800" id="page-title">数据概览</h1>
+                <div class="flex items-center gap-4">
+                    <span class="text-gray-600">欢迎, <strong id="admin-name">管理员</strong></span>
+                    <button onclick="logout()" class="text-gray-600 hover:text-danger">
+                        <i class="fas fa-sign-out-alt"></i> 退出
+                    </button>
+                </div>
+            </header>
+
+            <!-- Dashboard Page -->
+            <div id="page-dashboard" class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                    <div class="bg-white rounded-xl shadow-sm p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-500 text-sm">教师总数</p>
+                                <p class="text-3xl font-bold text-gray-800" id="stat-teachers">0</p>
+                            </div>
+                            <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                                <i class="fas fa-user-graduate text-primary text-xl"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-sm p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-500 text-sm">用户总数</p>
+                                <p class="text-3xl font-bold text-gray-800" id="stat-users">0</p>
+                            </div>
+                            <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                                <i class="fas fa-users text-success text-xl"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-sm p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-500 text-sm">评价总数</p>
+                                <p class="text-3xl font-bold text-gray-800" id="stat-ratings">0</p>
+                            </div>
+                            <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
+                                <i class="fas fa-comments text-purple-600 text-xl"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-xl shadow-sm p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-gray-500 text-sm">待审核教师</p>
+                                <p class="text-3xl font-bold text-warning" id="stat-pending">0</p>
+                            </div>
+                            <div class="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
+                                <i class="fas fa-clock text-warning text-xl"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-sm p-6">
+                    <h2 class="text-lg font-bold text-gray-800 mb-4">最近评价</h2>
+                    <div id="recent-ratings" class="space-y-3"></div>
+                </div>
+            </div>
+
+            <!-- Teachers Page -->
+            <div id="page-teachers" class="p-6 hidden">
+                <div class="bg-white rounded-xl shadow-sm">
+                    <div class="p-4 border-b flex items-center justify-between">
+                        <h2 class="text-lg font-bold">教师列表</h2>
+                        <button onclick="showAddTeacherModal()" class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                            <i class="fas fa-plus"></i> 添加教师
+                        </button>
+                    </div>
+                    <table class="w-full">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">姓名</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">简介</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">评分</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">状态</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="teachers-table" class="divide-y divide-gray-200"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Users Page -->
+            <div id="page-users" class="p-6 hidden">
+                <div class="bg-white rounded-xl shadow-sm">
+                    <div class="p-4 border-b">
+                        <h2 class="text-lg font-bold">用户列表</h2>
+                    </div>
+                    <table class="w-full">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">用户名</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">邮箱</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">角色</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">状态</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="users-table" class="divide-y divide-gray-200"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Ratings Page -->
+            <div id="page-ratings" class="p-6 hidden">
+                <div class="bg-white rounded-xl shadow-sm">
+                    <div class="p-4 border-b">
+                        <h2 class="text-lg font-bold">评价管理</h2>
+                    </div>
+                    <table class="w-full">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">教师</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">用户</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">评价内容</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">评分</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ratings-table" class="divide-y divide-gray-200"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Submissions Page -->
+            <div id="page-submissions" class="p-6 hidden">
+                <div class="bg-white rounded-xl shadow-sm">
+                    <div class="p-4 border-b">
+                        <h2 class="text-lg font-bold">投稿审核</h2>
+                    </div>
+                    <div id="submissions-table" class="divide-y divide-gray-200"></div>
+                    <div id="submissions-empty" class="text-center py-8 text-gray-500 hidden">
+                        暂无待审核投稿
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Add Teacher Modal -->
+    <div id="add-teacher-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+        <div class="bg-white rounded-xl p-6 w-full max-w-md">
+            <h3 class="text-lg font-bold mb-4">添加教师</h3>
+            <form id="add-teacher-form" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">姓名 *</label>
+                    <input type="text" name="name" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">简介</label>
+                    <textarea name="description" rows="3" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary"></textarea>
+                </div>
+                <div class="flex gap-3">
+                    <button type="submit" class="flex-1 bg-primary text-white py-2 rounded-lg hover:bg-blue-700">添加</button>
+                    <button type="button" onclick="closeModal('add-teacher-modal')" class="flex-1 bg-gray-200 text-gray-800 py-2 rounded-lg hover:bg-gray-300">取消</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script>
+        let currentPage = 'dashboard';
+
+        function showPage(page) {
+            document.querySelectorAll('[id^="page-"]').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`page-${page}`).classList.remove('hidden');
+            document.querySelectorAll('.sidebar-item').forEach(el => el.classList.remove('active'));
+            document.querySelector(`[data-page="${page}"]`).classList.add('active');
+            document.getElementById('page-title').textContent = {
+                dashboard: '数据概览', teachers: '教师管理', submissions: '投稿审核', users: '用户管理', ratings: '评论管理'
+            }[page];
+            currentPage = page;
+            loadPageData(page);
+        }
+
+        async function loadPageData(page) {
+            switch(page) {
+                case 'dashboard': loadDashboard(); break;
+                case 'teachers': loadTeachers(); break;
+                case 'submissions': loadSubmissions(); break;
+                case 'users': loadUsers(); break;
+                case 'ratings': loadRatings(); break;
+            }
+        }
+
+        async function loadDashboard() {
+            const token = getToken();
+            const headers = { 'Authorization': `Bearer ${token}` };
+            const [teachers, users, ratings] = await Promise.all([
+                fetch('/api/admin/teachers', { headers }).then(r => r.json()),
+                fetch('/api/admin/users', { headers }).then(r => r.json()),
+                fetch('/api/admin/ratings', { headers }).then(r => r.json())
+            ]);
+            
+            document.getElementById('stat-teachers').textContent = teachers.success ? teachers.data.length : 0;
+            document.getElementById('stat-users').textContent = users.success ? users.data.length : 0;
+            document.getElementById('stat-ratings').textContent = ratings.success ? ratings.data.length : 0;
+            document.getElementById('stat-pending').textContent = teachers.success ? teachers.data.filter(t => !t.isActive).length : 0;
+
+            if (ratings.success && ratings.data.length > 0) {
+                const recent = ratings.data.slice(0, 5);
+                document.getElementById('recent-ratings').innerHTML = recent.map(r => `
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div>
+                            <p class="font-medium">${r.comment.substring(0, 50)}${r.comment.length > 50 ? '...' : ''}</p>
+                            <p class="text-sm text-gray-500">评分: ${r.rating}星</p>
+                        </div>
+                        <div class="text-right text-sm text-gray-500">${r.createdAt ? new Date(r.createdAt).toLocaleDateString() : '未知'}</div>
+                    </div>
+                `).join('');
+            }
+        }
+
+        async function loadTeachers() {
+            const token = getToken();
+            const res = await fetch('/api/admin/teachers', { headers: { 'Authorization': `Bearer ${token}` } });
+            const result = await res.json();
+            if (!result.success) return;
+
+            document.getElementById('teachers-table').innerHTML = result.data.map(t => `
+                <tr class="table-row-hover">
+                    <td class="px-6 py-4">${t.name}</td>
+                    <td class="px-6 py-4 text-gray-500">${t.description || '-'}</td>
+                    <td class="px-6 py-4">${t.ratingCount > 0 ? (t.ratingSum / t.ratingCount).toFixed(1) : '0'} (${t.ratingCount})</td>
+                    <td class="px-6 py-4">
+                        <span class="px-2 py-1 text-xs rounded-full ${t.isActive ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}">
+                            ${t.isActive ? '已启用' : '待审核'}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4">
+                        ${!t.isActive ? `<button onclick="approveTeacher('${t._id}')" class="text-success hover:underline mr-3">通过</button>` : ''}
+                        <button onclick="deleteTeacher('${t._id}')" class="text-danger hover:underline">删除</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function loadUsers() {
+            const token = getToken();
+            const res = await fetch('/api/admin/users', { headers: { 'Authorization': `Bearer ${token}` } });
+            const result = await res.json();
+            if (!result.success) return;
+
+            document.getElementById('users-table').innerHTML = result.data.map(u => `
+                <tr class="table-row-hover">
+                    <td class="px-6 py-4">${u.username}</td>
+                    <td class="px-6 py-4 text-gray-500">${u.email}</td>
+                    <td class="px-6 py-4">
+                        <span class="px-2 py-1 text-xs rounded-full ${u.role === 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'}">
+                            ${u.role === 'admin' ? '管理员' : '用户'}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="px-2 py-1 text-xs rounded-full ${u.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                            ${u.isActive ? '正常' : '已封禁'}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4">
+                        <button onclick="toggleUserStatus('${u._id}', ${u.isActive})" class="${u.isActive ? 'text-warning' : 'text-success'} hover:underline mr-3">
+                            ${u.isActive ? '封禁' : '解封'}
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function loadRatings() {
+            const token = getToken();
+            const res = await fetch('/api/admin/ratings', { headers: { 'Authorization': `Bearer ${token}` } });
+            const result = await res.json();
+            if (!result.success) return;
+
+            const teachersRes = await fetch('/api/admin/teachers', { headers: { 'Authorization': `Bearer ${token}` } });
+            const teachersResult = await teachersRes.json();
+            const teacherMap = {};
+            if (teachersResult.success) {
+                teachersResult.data.forEach(t => teacherMap[t._id] = t.name);
+            }
+
+            document.getElementById('ratings-table').innerHTML = result.data.map(r => `
+                <tr class="table-row-hover">
+                    <td class="px-6 py-4">${teacherMap[r.teacherId] || '未知'}</td>
+                    <td class="px-6 py-4">${r.isAnonymous ? '匿名' : r.userId}</td>
+                    <td class="px-6 py-4 text-gray-500 max-w-xs truncate">${r.comment}</td>
+                    <td class="px-6 py-4">${r.rating}星</td>
+                    <td class="px-6 py-4">
+                        <button onclick="deleteRating('${r._id}')" class="text-danger hover:underline">删除</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function approveTeacher(id) {
+            if (!confirm('确认通过该教师?')) return;
+            const token = getToken();
+            await fetch(`/api/admin/teachers/${id}/approve`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
+            loadTeachers();
+        }
+
+        async function deleteTeacher(id) {
+            if (!confirm('确认删除该教师?')) return;
+            const token = getToken();
+            await fetch(`/api/admin/teachers/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
+            loadTeachers();
+        }
+
+        async function toggleUserStatus(id, currentStatus) {
+            const action = currentStatus ? '封禁' : '解封';
+            if (!confirm(`确认${action}该用户?`)) return;
+            const token = getToken();
+            await fetch(`/api/admin/users/${id}/toggle`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
+            loadUsers();
+        }
+
+        async function deleteRating(id) {
+            if (!confirm('确认删除该评价?')) return;
+            const token = getToken();
+            await fetch(`/api/admin/ratings/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
+            loadRatings();
+        }
+
+        async function loadSubmissions() {
+            const token = getToken();
+            const res = await fetch('/api/admin/submissions', { headers: { 'Authorization': `Bearer ${token}` } });
+            const result = await res.json();
+            
+            const container = document.getElementById('submissions-table');
+            const empty = document.getElementById('submissions-empty');
+            
+            if (!result.success || result.data.length === 0) {
+                container.classList.add('hidden');
+                empty.classList.remove('hidden');
+                return;
+            }
+            
+            container.classList.remove('hidden');
+            empty.classList.add('hidden');
+            
+            container.innerHTML = result.data.map(s => `
+                <div class="p-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <h3 class="font-bold text-lg">${s.name}</h3>
+                        <span class="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">待审核</span>
+                    </div>
+                    <p class="text-gray-600 mb-3">${s.description || '暂无简介'}</p>
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-400">投稿时间: ${s.createdAt ? new Date(s.createdAt).toLocaleDateString() : '未知'}</span>
+                        <div class="flex gap-2">
+                            <button onclick="approveSubmission('${s._id}')" class="bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600">通过</button>
+                            <button onclick="rejectSubmission('${s._id}')" class="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600">拒绝</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function approveSubmission(id) {
+            if (!confirm('确认通过该投稿?')) return;
+            const token = getToken();
+            await fetch(`/api/admin/submissions/${id}/approve`, { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }
+            });
+            loadSubmissions();
+            loadTeachers();
+        }
+
+        async function rejectSubmission(id) {
+            if (!confirm('确认拒绝该投稿?')) return;
+            const token = getToken();
+            await fetch(`/api/admin/submissions/${id}/reject`, { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }
+            });
+            loadSubmissions();
+        }
+
+        function showAddTeacherModal() {
+            document.getElementById('add-teacher-modal').classList.remove('hidden');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+        }
+
+        document.getElementById('add-teacher-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            await fetch('/api/admin/teachers', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
+                body: JSON.stringify({ name: formData.get('name'), description: formData.get('description') })
+            });
+            closeModal('add-teacher-modal');
+            e.target.reset();
+            loadTeachers();
+        });
+
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '/';
+        }
+
+        function getToken() { return localStorage.getItem('token'); }
+        function getUser() { return JSON.parse(localStorage.getItem('user') || '{}'); }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const user = getUser();
+            if (!getToken() || user.role !== 'admin') {
+                alert('请先以管理员登录');
+                window.location.href = '/login.html';
+                return;
+            }
+            function getDisplayName(user) {
+                if (user.profile && user.profile.firstName && user.profile.lastName) {
+                    return user.profile.lastName + user.profile.firstName;
+                } else if (user.profile && user.profile.firstName) {
+                    return user.profile.firstName;
+                }
+                return user.username || '管理员';
+            }
+            document.getElementById('admin-name').textContent = getDisplayName(user);
+            loadDashboard();
+        });
+    </script>
+</body>
+</html>

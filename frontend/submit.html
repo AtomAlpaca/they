@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>投稿教师 - TeacherRate</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: { primary: '#2563eb', success: '#16a34a', warning: '#d97706', danger: '#dc2626' }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <nav class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <a href="/" class="flex items-center gap-2">
+                        <i class="fas fa-graduation-cap text-primary text-2xl"></i>
+                        <span class="font-bold text-xl text-gray-800">TeacherRate</span>
+                    </a>
+                </div>
+                <div class="flex items-center gap-4" id="nav-auth">
+                    <a href="/login.html" class="text-gray-600 hover:text-primary transition">登录</a>
+                    <a href="/register.html" class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">注册</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-2xl mx-auto px-4 py-8">
+        <div class="flex items-center gap-4 mb-8">
+            <a href="/" class="text-gray-600 hover:text-primary">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+            <h1 class="text-2xl font-bold text-gray-900">投稿教师</h1>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm p-6 mb-6">
+            <h2 class="text-lg font-bold text-gray-900 mb-4">提交新教师信息</h2>
+            <p class="text-gray-600 text-sm mb-6">如果您发现系统中没有您想评价的教师，可以在这里提交添加请求，管理员审核后会添加到系统中。</p>
+            
+            <form id="submission-form" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">教师姓名 *</label>
+                    <input type="text" name="name" required
+                        class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary"
+                        placeholder="请输入教师姓名">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">教师简介</label>
+                    <textarea name="description" rows="4"
+                        class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary"
+                        placeholder="请简要介绍这位教师（例如：授课科目、教学特点等）"></textarea>
+                </div>
+                <div id="form-msg" class="text-sm hidden"></div>
+                <button type="submit" class="w-full bg-primary text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition">
+                    提交投稿
+                </button>
+            </form>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-sm p-6">
+            <h2 class="text-lg font-bold text-gray-900 mb-4">我的投稿</h2>
+            <div id="submissions-list" class="space-y-4"></div>
+            <div id="submissions-loading" class="text-center py-8 hidden">
+                <i class="fas fa-spinner fa-spin text-2xl text-primary"></i>
+            </div>
+            <div id="submissions-empty" class="text-center py-8 hidden">
+                <i class="fas fa-inbox text-4xl text-gray-300 mb-3"></i>
+                <p class="text-gray-500">暂无投稿记录</p>
+            </div>
+        </div>
+    </main>
+
+    <script src="js/app.js"></script>
+    <script>
+        function getToken() { return localStorage.getItem('token'); }
+        function getUser() { return JSON.parse(localStorage.getItem('user') || '{}'); }
+
+        document.getElementById('submission-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            if (!getToken()) {
+                alert('请先登录');
+                window.location.href = '/login.html';
+                return;
+            }
+
+            const formData = new FormData(e.target);
+            const data = {
+                name: formData.get('name'),
+                description: formData.get('description')
+            };
+
+            const msg = document.getElementById('form-msg');
+            const btn = e.target.querySelector('button');
+            btn.disabled = true;
+            btn.textContent = '提交中...';
+
+            try {
+                const res = await fetch('/api/submissions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${getToken()}`
+                    },
+                    body: JSON.stringify(data)
+                });
+                const result = await res.json();
+
+                if (result.success) {
+                    msg.textContent = '投稿成功，等待管理员审核';
+                    msg.className = 'text-sm text-green-600 mt-2';
+                    msg.classList.remove('hidden');
+                    e.target.reset();
+                    loadSubmissions();
+                } else {
+                    msg.textContent = result.message || '投稿失败';
+                    msg.className = 'text-sm text-red-600 mt-2';
+                    msg.classList.remove('hidden');
+                }
+            } catch (err) {
+                msg.textContent = '网络错误';
+                msg.className = 'text-sm text-red-600 mt-2';
+                msg.classList.remove('hidden');
+            }
+
+            btn.disabled = false;
+            btn.textContent = '提交投稿';
+        });
+
+        async function loadSubmissions() {
+            if (!getToken()) return;
+
+            const loading = document.getElementById('submissions-loading');
+            const empty = document.getElementById('submissions-empty');
+            const list = document.getElementById('submissions-list');
+
+            loading.classList.remove('hidden');
+            empty.classList.add('hidden');
+            list.classList.add('hidden');
+
+            try {
+                const res = await fetch('/api/submissions/my', {
+                    headers: { 'Authorization': `Bearer ${getToken()}` }
+                });
+                const result = await res.json();
+
+                loading.classList.add('hidden');
+
+                if (result.success && result.data.length > 0) {
+                    list.classList.remove('hidden');
+                    list.innerHTML = result.data.map(s => {
+                        const statusBadge = {
+                            'pending': '<span class="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">待审核</span>',
+                            'approved': '<span class="px-2 py-1 text-xs rounded-full bg-green-100 text-green-800">已通过</span>',
+                            'rejected': '<span class="px-2 py-1 text-xs rounded-full bg-red-100 text-red-800">已拒绝</span>'
+                        }[s.status];
+                        
+                        return `
+                            <div class="border border-gray-200 rounded-lg p-4">
+                                <div class="flex items-center justify-between mb-2">
+                                    <h3 class="font-bold text-gray-900">${s.name}</h3>
+                                    ${statusBadge}
+                                </div>
+                                <p class="text-gray-600 text-sm mb-2">${s.description || '暂无简介'}</p>
+                                <div class="flex items-center justify-between text-sm">
+                                    <span class="text-gray-400">${new Date(s.createdAt).toLocaleDateString()}</span>
+                                    ${s.adminNote ? `<span class="text-gray-500">备注: ${s.adminNote}</span>` : ''}
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                } else {
+                    empty.classList.remove('hidden');
+                }
+            } catch (err) {
+                loading.classList.add('hidden');
+                empty.classList.remove('hidden');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            checkAuth();
+            loadSubmissions();
+        });
+    </script>
+</body>
+</html>

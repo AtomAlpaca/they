@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>个人中心 - TeacherRate</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: { primary: '#2563eb', danger: '#dc2626', success: '#16a34a' }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <nav class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <a href="/" class="flex items-center gap-2">
+                        <i class="fas fa-graduation-cap text-primary text-2xl"></i>
+                        <span class="font-bold text-xl text-gray-800">TeacherRate</span>
+                    </a>
+                </div>
+                <div class="flex items-center gap-4" id="nav-auth">
+                    <a href="/login.html" class="text-gray-600 hover:text-primary transition">登录</a>
+                    <a href="/register.html" class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">注册</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-4xl mx-auto px-4 py-8">
+        <div class="flex items-center gap-4 mb-8">
+            <a href="/" class="text-gray-600 hover:text-primary">
+                <i class="fas fa-arrow-left"></i> 返回
+            </a>
+            <h1 class="text-2xl font-bold text-gray-900">个人中心</h1>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- 个人信息侧边栏 -->
+            <div class="md:col-span-1">
+                <div class="bg-white rounded-xl shadow-sm p-6">
+                    <div class="text-center mb-6">
+                        <div class="w-20 h-20 bg-primary rounded-full flex items-center justify-center text-white text-3xl font-bold mx-auto mb-3" id="avatar-initial">
+                            U
+                        </div>
+                        <h2 class="text-xl font-bold text-gray-900" id="profile-username">用户名</h2>
+                        <p class="text-gray-500" id="profile-email">email@example.com</p>
+                    </div>
+                    <div class="space-y-3">
+                        <button onclick="showSection('profile')" class="w-full text-left px-4 py-2 rounded-lg hover:bg-gray-50 flex items-center gap-3">
+                            <i class="fas fa-user text-gray-500"></i> 个人资料
+                        </button>
+                        <button onclick="showSection('ratings')" class="w-full text-left px-4 py-2 rounded-lg hover:bg-gray-50 flex items-center gap-3">
+                            <i class="fas fa-comment text-gray-500"></i> 我的评价
+                        </button>
+                        <button onclick="logout()" class="w-full text-left px-4 py-2 rounded-lg hover:bg-red-50 text-red-600 flex items-center gap-3">
+                            <i class="fas fa-sign-out-alt"></i> 退出登录
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 内容区域 -->
+            <div class="md:col-span-2">
+                <!-- 资料编辑 -->
+                <div id="section-profile" class="bg-white rounded-xl shadow-sm p-6">
+                    <h3 class="text-lg font-bold text-gray-900 mb-6">编辑个人资料</h3>
+                    <form id="profile-form" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">用户名</label>
+                            <input type="text" name="username" id="input-username" disabled
+                                class="w-full px-4 py-2 border rounded-lg bg-gray-50 text-gray-500">
+                            <p class="text-xs text-gray-500 mt-1">用户名不可修改</p>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">名</label>
+                                <input type="text" name="firstName" id="input-firstName" placeholder="名"
+                                    class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">姓</label>
+                                <input type="text" name="lastName" id="input-lastName" placeholder="姓"
+                                    class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">新密码（不修改则留空）</label>
+                            <input type="password" name="password" placeholder="至少6位"
+                                class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary">
+                        </div>
+                        <div id="profile-msg" class="text-sm hidden"></div>
+                        <button type="submit" class="bg-primary text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition">
+                            保存修改
+                        </button>
+                    </form>
+                </div>
+
+                <!-- 我的评价 -->
+                <div id="section-ratings" class="bg-white rounded-xl shadow-sm p-6 hidden">
+                    <h3 class="text-lg font-bold text-gray-900 mb-6">我的评价</h3>
+                    <div id="my-ratings-list" class="space-y-4"></div>
+                    <div id="ratings-loading" class="text-center py-8 hidden">
+                        <i class="fas fa-spinner fa-spin text-2xl text-primary"></i>
+                    </div>
+                    <div id="ratings-empty" class="text-center py-8 hidden">
+                        <i class="fas fa-comment-slash text-4xl text-gray-300 mb-3"></i>
+                        <p class="text-gray-500">暂无评价</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="js/app.js"></script>
+    <script>
+        function showSection(section) {
+            document.getElementById('section-profile').classList.add('hidden');
+            document.getElementById('section-ratings').classList.add('hidden');
+            document.getElementById(`section-${section}`).classList.remove('hidden');
+            
+            if (section === 'ratings') {
+                loadMyRatings();
+            }
+        }
+
+        function getToken() { return localStorage.getItem('token'); }
+        function getUser() { return JSON.parse(localStorage.getItem('user') || '{}'); }
+        
+        function getDisplayName(user) {
+            if (user.profile && user.profile.firstName && user.profile.lastName) {
+                return user.profile.lastName + user.profile.firstName;
+            } else if (user.profile && user.profile.firstName) {
+                return user.profile.firstName;
+            }
+            return user.username || '用户';
+        }
+
+        function initProfile() {
+            const user = getUser();
+            if (!getToken()) {
+                alert('请先登录');
+                window.location.href = '/login.html';
+                return;
+            }
+            const displayName = getDisplayName(user);
+            document.getElementById('avatar-initial').textContent = displayName[0] ? displayName[0].toUpperCase() : 'U';
+            document.getElementById('profile-username').textContent = displayName;
+            document.getElementById('profile-email').textContent = user.email || '';
+            document.getElementById('input-username').value = user.username || '';
+            document.getElementById('input-email').value = user.email || '';
+            document.getElementById('input-firstName').value = user.profile?.firstName || '';
+            document.getElementById('input-lastName').value = user.profile?.lastName || '';
+        }
+
+        document.getElementById('profile-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const data = {};
+            if (formData.get('email')) data.email = formData.get('email');
+            if (formData.get('password')) data.password = formData.get('password');
+            if (formData.get('firstName')) {
+                data.profile = { firstName: formData.get('firstName') };
+            }
+            if (formData.get('lastName')) {
+                data.profile = data.profile || {};
+                data.profile.lastName = formData.get('lastName');
+            }
+
+            const msg = document.getElementById('profile-msg');
+            
+            try {
+                const res = await fetch('/api/auth/profile', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${getToken()}`
+                    },
+                    body: JSON.stringify(data)
+                });
+                const result = await res.json();
+                
+                if (result.success) {
+                    msg.textContent = '保存成功';
+                    msg.className = 'text-sm text-green-600 mt-2';
+                    msg.classList.remove('hidden');
+                    
+                    const user = getUser();
+                    if (formData.get('email')) user.email = formData.get('email');
+                    if (!user.profile) user.profile = {};
+                    if (formData.get('firstName')) user.profile.firstName = formData.get('firstName');
+                    if (formData.get('lastName')) user.profile.lastName = formData.get('lastName');
+                    localStorage.setItem('user', JSON.stringify(user));
+                    
+                    initProfile();
+                    
+                    if (formData.get('password')) {
+                        alert('密码已修改，请重新登录');
+                        logout();
+                    }
+                } else {
+                    msg.textContent = result.message || '保存失败';
+                    msg.className = 'text-sm text-red-600 mt-2';
+                    msg.classList.remove('hidden');
+                }
+            } catch (err) {
+                msg.textContent = '网络错误';
+                msg.className = 'text-sm text-red-600 mt-2';
+                msg.classList.remove('hidden');
+            }
+        });
+
+        async function loadMyRatings() {
+            const loading = document.getElementById('ratings-loading');
+            const empty = document.getElementById('ratings-empty');
+            const list = document.getElementById('my-ratings-list');
+            
+            loading.classList.remove('hidden');
+            empty.classList.add('hidden');
+            list.classList.add('hidden');
+            
+            try {
+                const res = await fetch('/api/ratings/my', {
+                    headers: { 'Authorization': `Bearer ${getToken()}` }
+                });
+                const result = await res.json();
+                
+                loading.classList.add('hidden');
+                
+                if (result.success && result.data.length > 0) {
+                    list.classList.remove('hidden');
+                    
+                    const teachersRes = await fetch('/api/teachers');
+                    const teachersResult = await teachersRes.json();
+                    const teacherMap = {};
+                    if (teachersResult.success) {
+                        teachersResult.data.forEach(t => teacherMap[t.id] = t.name);
+                    }
+                    
+                    list.innerHTML = result.data.map(r => `
+                        <div class="border-b border-gray-100 pb-4 last:border-0">
+                            <div class="flex items-center justify-between mb-2">
+                                <div class="flex items-center gap-2">
+                                    <i class="fas fa-user-graduate text-gray-400"></i>
+                                    <span class="font-medium">${teacherMap[r.teacherId] || '未知教师'}</span>
+                                </div>
+                                <div class="flex items-center gap-1">
+                                    ${[1,2,3,4,5].map(i => `<i class="fas fa-star ${i <= r.rating ? 'text-yellow-400' : 'text-gray-300'} text-sm"></i>`).join('')}
+                                </div>
+                            </div>
+                            <p class="text-gray-700 mb-2">${r.comment}</p>
+                            <div class="flex items-center justify-between text-sm">
+                                <span class="text-gray-500">${r.isAnonymous ? '匿名发布' : '公开'}</span>
+                                <span class="text-gray-400">${r.createdAt ? new Date(r.createdAt).toLocaleDateString() : '未知'}</span>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    empty.classList.remove('hidden');
+                }
+            } catch (err) {
+                loading.classList.add('hidden');
+                empty.classList.remove('hidden');
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            window.location.href = '/';
+        }
+
+        document.addEventListener('DOMContentLoaded', initProfile);
+    </script>
+</body>
+</html>
